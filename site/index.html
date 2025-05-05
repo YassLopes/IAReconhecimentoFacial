@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <title>Reconhecimento Facial</title>
+  <style>
+    body { font-family: Arial, text-align: center; background-color: #f7f7f7; padding: 20px; }
+    video, canvas { margin-top: 15px; border: 2px solid #555; }
+    input, button { padding: 10px; font-size: 16px; margin: 5px; }
+    #resposta { margin-top: 20px; font-weight: bold; font-size: 18px; }
+  </style>
+</head>
+<body>
+
+  <h1>Reconhecimento Facial</h1>
+
+  <video id="video" width="320" height="240" autoplay muted></video><br>
+  <canvas id="canvas" width="320" height="240" style="display: none;"></canvas>
+
+  <br>
+  <button onclick="abrirCamera()">📷 Ligar Câmera</button>
+  <button onclick="verificar()">✅ Verificar</button>
+
+  <br><br>
+  <input type="text" id="nome" placeholder="Digite seu nome">
+  <button onclick="cadastrar()">📥 Cadastrar</button>
+
+  <p id="resposta">Aguardando ação...</p>
+
+  <script>
+    const video = document.getElementById("video");
+    const canvas = document.getElementById("canvas");
+    const ctx = canvas.getContext("2d");
+    const resposta = document.getElementById("resposta");
+    let stream = null;
+
+    function abrirCamera() {
+      navigator.mediaDevices.getUserMedia({ video: true })
+        .then(s => {
+          stream = s;
+          video.srcObject = stream;
+          resposta.innerText = "✅ Câmera ativada.";
+        })
+        .catch(err => {
+          resposta.innerText = "❌ Erro ao acessar a câmera: " + err;
+        });
+    }
+
+    function verificar() {
+      if (!stream) return resposta.innerText = "⚠️ Câmera não iniciada.";
+      ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+
+      canvas.toBlob(blob => {
+        const formData = new FormData();
+        formData.append("imagem", blob, "foto.jpg");
+
+        resposta.innerText = "⏳ Verificando rosto...";
+
+        fetch("/verificar", {
+          method: "POST",
+          body: formData
+        })
+        .then(r => r.json())
+        .then(data => {
+          if (data.autorizado) {
+            resposta.innerText = `✅ Rosto reconhecido: ${data.pessoa} | Back4App: ${data.back4app}`;
+          } else {
+            resposta.innerText = "❌ Rosto não reconhecido.";
+          }
+        })
+        .catch(err => {
+          resposta.innerText = "❌ Erro ao verificar: " + err;
+        });
+      }, "image/jpeg");
+    }
+
+    function cadastrar() {
+      const nome = document.getElementById("nome").value.trim();
+      if (!nome) return resposta.innerText = "⚠️ Digite um nome antes de cadastrar.";
+      if (!stream) return resposta.innerText = "⚠️ Câmera não iniciada.";
+
+      ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+      canvas.toBlob(blob => {
+        const formData = new FormData();
+        formData.append("nome", nome);
+        formData.append("imagem", blob, `${nome}.jpg`);
+
+        resposta.innerText = "⏳ Enviando cadastro...";
+
+        fetch("/cadastrar", {
+          method: "POST",
+          body: formData
+        })
+        .then(r => r.json())
+        .then(data => {
+          resposta.innerText = `📥 ${data.msg}`;
+        })
+        .catch(err => {
+          resposta.innerText = "❌ Erro ao cadastrar: " + err;
+        });
+      }, "image/jpeg");
+    }
+  </script>
+
+</body>
+</html>
