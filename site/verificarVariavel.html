@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <title>Painel ESP32</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            text-align: center;
+            padding: 50px;
+            background: #f0f2f5;
+        }
+        #status {
+            font-size: 24px;
+            margin: 20px 0;
+        }
+        button {
+            padding: 10px 20px;
+            font-size: 18px;
+            margin: 10px;
+            cursor: pointer;
+        }
+    </style>
+</head>
+<body>
+    <h1>Controle do ESP32</h1>
+    <div id="status">Carregando...</div>
+    <button onclick="atualizarStatus(true)">Ligar</button>
+    <button onclick="atualizarStatus(false)">Desligar</button>
+
+    <script>
+        const url = "https://parseapi.back4app.com/classes/esp32/aczejEuhPn";
+        const headers = {
+            "X-Parse-Application-Id": "4RkqUjQ5dyL7k0RbQyGz2ArZMjoIPz9Qb3VuGUKU",
+            "X-Parse-REST-API-Key": "WkO0917Kzrx3oqWV4QDVDgbeTAuKI1crrbxAwvaE",
+            "Content-Type": "application/json"
+        };
+
+        function carregarStatus() {
+            fetch(url, { headers })
+                .then(response => response.json())
+                .then(data => {
+                    const ligado = data.ligado;
+                    document.getElementById("status").innerText = ligado ? "Status: Ligado 🔆" : "Status: Desligado 🌙";
+                })
+                .catch(err => {
+                    document.getElementById("status").innerText = "Erro ao carregar o status";
+                    console.error(err);
+                });
+        }
+
+        function atualizarStatus(novoValor) {
+            fetch(url, {
+                method: "PUT",
+                headers,
+                body: JSON.stringify({ ligado: novoValor })
+            })
+            .then(response => {
+                if (!response.ok) throw new Error("Falha na atualização");
+                return response.json();
+            })
+            .then(() => carregarStatus())
+            .catch(err => alert("Erro ao atualizar status: " + err));
+        }
+
+        // Carrega automaticamente ao abrir
+        carregarStatus();
+    </script>
+</body>
+</html>
